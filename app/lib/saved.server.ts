@@ -127,6 +127,7 @@ export function saveNote(
 }
 
 const savedLessonColumns = {
+  courseId: courses.id,
   lessonId: lessons.id,
   lessonTitle: lessons.title,
   courseTitle: courses.title,

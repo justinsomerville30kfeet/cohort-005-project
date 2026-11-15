@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import type { Route } from "./+types/saved";
 import { db } from "~/db";
-import { requireUserId } from "~/lib/access.server";
+import { getAccess, requireUserId } from "~/lib/access.server";
 import { listBookmarks, listNotes } from "~/lib/saved.server";
 import { Card, CardContent } from "~/components/ui/card";
 import { Bookmark, NotebookPen } from "lucide-react";
@@ -17,10 +17,24 @@ export function meta() {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const userId = await requireUserId(request);
+  const bookmarks = listBookmarks(db, userId);
+  const notes = listNotes(db, userId);
+
+  // Rows on a Course the Student can no longer open (after an approved Refund,
+  // say) are kept but not shown — they stop being reachable along with the
+  // Course, using the same content-access rule as the Lesson page.
+  const courseIds = new Set(
+    [...bookmarks, ...notes].map((row) => row.courseId)
+  );
+  const readable = new Set<number>();
+  for (const courseId of courseIds) {
+    const access = await getAccess(request, courseId);
+    if (access.canViewContent) readable.add(courseId);
+  }
 
   return {
-    savedBookmarks: listBookmarks(db, userId),
-    savedNotes: listNotes(db, userId),
+    savedBookmarks: bookmarks.filter((row) => readable.has(row.courseId)),
+    savedNotes: notes.filter((row) => readable.has(row.courseId)),
   };
 }
 
