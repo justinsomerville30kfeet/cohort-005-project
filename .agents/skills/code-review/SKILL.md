@@ -16,7 +16,7 @@ The issue tracker should have been provided to you. If not, tell the user to run
 
 ### 1. Pin the fixed point
 
-Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). If they didn't specify one, ask for it.
+Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). For a pull request, the fixed point is `origin/<baseRefName>` from `gh pr view <n> --json baseRefName` — often not `main`. If they didn't specify one, ask for it.
 
 Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
 
@@ -30,6 +30,8 @@ Look for the originating spec, in this order:
 2. A path the user passed as an argument.
 3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
 4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+
+The spec is the issue body **plus its comments** (`gh issue view <n> --comments`). Comments carry the decisions made after the issue was written: a departure the user approved is in scope, not scope creep.
 
 ### 3. Identify the standards sources
 
@@ -78,6 +80,10 @@ If the spec is missing, skip the Spec sub-agent and note this in the final repor
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
+
+### 6. Record approved departures
+
+When the user approves behaviour the spec didn't ask for, comment it on the spec's issue (`gh issue comment <n>`), so the next review reads it as spec.
 
 ## Why two axes
 
