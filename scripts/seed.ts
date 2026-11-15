@@ -72,6 +72,8 @@ async function seed() {
 
   // Drop and recreate tables for a clean seed
   sqlite.exec(`
+    DROP TABLE IF EXISTS bookmarks;
+    DROP TABLE IF EXISTS notes;
     DROP TABLE IF EXISTS comments;
     DROP TABLE IF EXISTS course_ratings;
     DROP TABLE IF EXISTS video_watch_events;
@@ -2067,6 +2069,42 @@ This course is still in draft while the cluster examples are rewritten against t
   markInProgress(students[4].id, course1LessonIds[1]);
 
   console.log(`Created ${countRows(schema.lessonProgress)} lesson progress records.`);
+
+  // ─── Bookmarks and Notes ───
+  // Private to the Student who made them. Emma has some in both courses;
+  // Olivia has one Bookmark.
+
+  db.insert(schema.bookmarks)
+    .values([
+      { userId: students[0].id, lessonId: course1LessonIds[4], createdAt: daysAgo(30) },
+      { userId: students[0].id, lessonId: course1LessonIds[12], createdAt: daysAgo(20) },
+      { userId: students[0].id, lessonId: course2LessonIds[3], createdAt: daysAgo(8) },
+      { userId: students[2].id, lessonId: course1LessonIds[1], createdAt: daysAgo(29) },
+    ])
+    .run();
+
+  db.insert(schema.notes)
+    .values([
+      {
+        userId: students[0].id,
+        lessonId: course1LessonIds[4],
+        body: "Rewatch the bit on narrowing.\n- typeof for primitives\n- in for object shapes",
+        createdAt: daysAgo(30),
+        updatedAt: daysAgo(18),
+      },
+      {
+        userId: students[0].id,
+        lessonId: course2LessonIds[3],
+        body: "PUT replaces, PATCH merges. Try both against the sample API.",
+        createdAt: daysAgo(8),
+        updatedAt: daysAgo(8),
+      },
+    ])
+    .run();
+
+  console.log(
+    `Created ${countRows(schema.bookmarks)} bookmarks and ${countRows(schema.notes)} notes.`
+  );
 
   // ─── Quiz Attempts ───
 
