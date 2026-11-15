@@ -74,12 +74,13 @@ export function getNote(
 }
 
 export type SaveNoteResult =
-  { ok: true; note: NoteSummary } | { ok: false; error: string };
+  { ok: true; note: NoteSummary | null } | { ok: false; error: string };
 
 /**
  * Creates the Student's Note on a Lesson, or replaces its body and moves its
  * "last edited" time on. The body is trimmed plain text, capped at
- * MAX_NOTE_LENGTH; an over-long body is refused, never truncated.
+ * MAX_NOTE_LENGTH; an over-long body is refused, never truncated. Saving an
+ * empty body clears the Note, so the box is empty again next time.
  */
 export function saveNote(
   db: Db,
@@ -90,7 +91,10 @@ export function saveNote(
 ): SaveNoteResult {
   const trimmed = body.trim();
   if (trimmed.length === 0) {
-    return { ok: false, error: "Write something before saving your note." };
+    db.delete(notes)
+      .where(and(eq(notes.userId, studentId), eq(notes.lessonId, lessonId)))
+      .run();
+    return { ok: true, note: null };
   }
   if (trimmed.length > MAX_NOTE_LENGTH) {
     return {

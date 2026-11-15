@@ -131,8 +131,21 @@ describe("saving a Note", () => {
     expect(getNote(db, base.user.id, lessonIds[0])).toBeNull();
   });
 
-  it("refuses an empty Note", () => {
-    expect(saveNote(db, base.user.id, lessonIds[0], "   ", NOW).ok).toBe(false);
+  it("clears the Note when saved with an empty body", () => {
+    saveNote(db, base.user.id, lessonIds[0], "Draft thought", NOW);
+
+    expect(saveNote(db, base.user.id, lessonIds[0], "   ", minutesLater(1)))
+      .toEqual({ ok: true, note: null });
+    expect(getNote(db, base.user.id, lessonIds[0])).toBeNull();
+    expect(listNotes(db, base.user.id)).toEqual([]);
+  });
+
+  it("does nothing when an empty body is saved on a Lesson with no Note", () => {
+    expect(saveNote(db, base.user.id, lessonIds[0], "", NOW)).toEqual({
+      ok: true,
+      note: null,
+    });
+    expect(getNote(db, base.user.id, lessonIds[0])).toBeNull();
   });
 });
 
