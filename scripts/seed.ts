@@ -2071,7 +2071,8 @@ This course is still in draft while the cluster examples are rewritten against t
   console.log(`Created ${countRows(schema.lessonProgress)} lesson progress records.`);
 
   // ─── Bookmarks and Notes ───
-  // Private to the Student who made them. Emma has a few in both courses.
+  // Private to the Student who made them. Emma has some in both courses;
+  // Olivia has one Bookmark.
 
   db.insert(schema.bookmarks)
     .values([

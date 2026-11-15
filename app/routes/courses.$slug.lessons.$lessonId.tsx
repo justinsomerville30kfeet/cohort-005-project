@@ -18,7 +18,7 @@ import {
   toggleBookmark,
   type NoteSummary,
 } from "~/lib/saved.server";
-import { MAX_NOTE_LENGTH } from "~/lib/notes";
+import { noteBodySchema } from "~/lib/notes";
 import {
   CommentThread,
   type RenderedComment,
@@ -96,13 +96,7 @@ const editCommentSchema = z.object({
 
 const saveNoteSchema = z.object({
   intent: z.literal("save-note"),
-  body: z
-    .string()
-    .trim()
-    .max(
-      MAX_NOTE_LENGTH,
-      `A note must be ${MAX_NOTE_LENGTH.toLocaleString("en")} characters or fewer.`
-    ),
+  body: noteBodySchema,
 });
 
 const deleteCommentSchema = z.object({
@@ -1169,6 +1163,9 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
             />
           )}
 
+          {/* Note — under the video, so the Student can write while watching */}
+          {showSaved && <LessonNote note={note} />}
+
           {/* Lesson Content */}
           {contentHtml && (
             <div
@@ -1185,8 +1182,6 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
             </Card>
           )}
 
-          {/* Note */}
-          {showSaved && <LessonNote note={note} />}
 
           {/* Quiz Section */}
           {quiz && enrolled && currentUserId && (

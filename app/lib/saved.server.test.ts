@@ -68,14 +68,12 @@ describe("bookmarking a Lesson", () => {
 
   it("never leaves two Bookmarks on the same Lesson", () => {
     toggleBookmark(db, base.user.id, lessonIds[0], NOW);
-    expect(() =>
-      db
-        .insert(schema.bookmarks)
-        .values({ userId: base.user.id, lessonId: lessonIds[0] })
-        .run()
-    ).toThrow();
+    toggleBookmark(db, base.user.id, lessonIds[0], minutesLater(1));
+    toggleBookmark(db, base.user.id, lessonIds[0], minutesLater(2));
 
-    expect(listBookmarks(db, base.user.id)).toHaveLength(1);
+    expect(listBookmarks(db, base.user.id)).toEqual([
+      expect.objectContaining({ lessonId: lessonIds[0] }),
+    ]);
   });
 });
 

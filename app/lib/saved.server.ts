@@ -2,7 +2,7 @@ import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { and, desc, eq } from "drizzle-orm";
 import * as schema from "~/db/schema";
 import { bookmarks, courses, lessons, modules, notes } from "~/db/schema";
-import { MAX_NOTE_LENGTH } from "~/lib/notes";
+import { noteBodySchema } from "~/lib/notes";
 
 // ─── Bookmarks and Notes ───
 // What a Student attaches to a Lesson for themselves and nobody else. See
@@ -20,13 +20,19 @@ export type Db = BetterSQLite3Database<typeof schema>;
 
 export type NoteSummary = { body: string; updatedAt: string };
 
+function studentBookmark(studentId: number, lessonId: number) {
+  return and(eq(bookmarks.userId, studentId), eq(bookmarks.lessonId, lessonId));
+}
+
+function studentNote(studentId: number, lessonId: number) {
+  return and(eq(notes.userId, studentId), eq(notes.lessonId, lessonId));
+}
+
 export function isBookmarked(db: Db, studentId: number, lessonId: number) {
   return !!db
     .select({ id: bookmarks.id })
     .from(bookmarks)
-    .where(
-      and(eq(bookmarks.userId, studentId), eq(bookmarks.lessonId, lessonId))
-    )
+    .where(studentBookmark(studentId, lessonId))
     .get();
 }
 
@@ -44,9 +50,7 @@ export function toggleBookmark(
   return db.transaction((tx) => {
     const removed = tx
       .delete(bookmarks)
-      .where(
-        and(eq(bookmarks.userId, studentId), eq(bookmarks.lessonId, lessonId))
-      )
+      .where(studentBookmark(studentId, lessonId))
       .returning({ id: bookmarks.id })
       .all();
     if (removed.length > 0) return false;
@@ -68,7 +72,7 @@ export function getNote(
     db
       .select({ body: notes.body, updatedAt: notes.updatedAt })
       .from(notes)
-      .where(and(eq(notes.userId, studentId), eq(notes.lessonId, lessonId)))
+      .where(studentNote(studentId, lessonId))
       .get() ?? null
   );
 }
@@ -78,9 +82,8 @@ export type SaveNoteResult =
 
 /**
  * Creates the Student's Note on a Lesson, or replaces its body and moves its
- * "last edited" time on. The body is trimmed plain text, capped at
- * MAX_NOTE_LENGTH; an over-long body is refused, never truncated. Saving an
- * empty body clears the Note, so the box is empty again next time.
+ * "last edited" time on. The body follows noteBodySchema. Saving an empty
+ * body clears the Note, so the box is empty again next time.
  */
 export function saveNote(
   db: Db,
@@ -89,18 +92,18 @@ export function saveNote(
   body: string,
   now: Date
 ): SaveNoteResult {
-  const trimmed = body.trim();
-  if (trimmed.length === 0) {
-    db.delete(notes)
-      .where(and(eq(notes.userId, studentId), eq(notes.lessonId, lessonId)))
-      .run();
-    return { ok: true, note: null };
-  }
-  if (trimmed.length > MAX_NOTE_LENGTH) {
+  const parsed = noteBodySchema.safeParse(body);
+  if (!parsed.success) {
     return {
       ok: false,
-      error: `A note must be ${MAX_NOTE_LENGTH.toLocaleString("en")} characters or fewer.`,
+      error: parsed.error.issues[0]?.message ?? "Could not save that note.",
     };
+  }
+  const trimmed = parsed.data;
+
+  if (trimmed.length === 0) {
+    db.delete(notes).where(studentNote(studentId, lessonId)).run();
+    return { ok: true, note: null };
   }
 
   const at = now.toISOString();
